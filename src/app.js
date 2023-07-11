@@ -5,8 +5,8 @@ import cartsRouter from './routes/carts.js';
 const app = express();
 const port = 8080;
 
+// Middleware para manejar el body de las solicitudes
 app.use(express.json());
-app.use(express.urlencoded({extended:true}))
 
 // Rutas para el manejo de productos
 app.use('/api/products', productsRouter);
@@ -19,6 +19,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
+// Inicio del servidor
 app.listen(port, () => {
   console.log(`Servidor escuchando en el puerto ${port}`);
 });

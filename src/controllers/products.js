@@ -1,74 +1,45 @@
-import express from 'express';
-import Product from '../models/products.js';
+import { promises as fs } from 'fs';
 
-const router = express.Router();
-const product = new Product();
-
-// Obtener todos los productos
-router.get('/', (req, res) => {
-  try {
-    const products = product.getProducts();
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+class ProductController {
+  constructor() {
+    this.filePath = './data/productos.json';
   }
-});
 
-// Agregar un nuevo producto
-router.post('/', (req, res) => {
-  try {
-    const newProduct = req.body;
-    const createdProduct = product.createProduct(newProduct);
-    res.status(201).json(createdProduct);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Obtener un producto por su ID
-router.get('/:pid', (req, res) => {
-  try {
-    const productId = req.params.pid;
-    const foundProduct = product.getProductById(productId);
-    if (!foundProduct) {
-      res.status(404).json({ error: 'Producto no encontrado' });
-    } else {
-      res.json(foundProduct);
+  async getProducts() {
+    try {
+      const data = await fs.readFile(this.filePath, 'utf8');
+      const products = JSON.parse(data);
+      return products;
+    } catch (error) {
+      throw new Error('Error al obtener los productos');
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
   }
-});
 
-// Actualizar un producto por su ID
-router.put('/:pid', (req, res) => {
-  try {
-    const productId = req.params.pid;
-    const updatedFields = req.body;
-    const updatedProduct = product.updateProduct(productId, updatedFields);
-    if (!updatedProduct) {
-      res.status(404).json({ error: 'Producto no encontrado' });
-    } else {
-      res.json(updatedProduct);
+  async addProduct(newProduct) {
+    try {
+      const products = await this.getProducts();
+      const productId = products.length + 1;
+      newProduct.id = productId;
+      products.push(newProduct);
+      await fs.writeFile(this.filePath, JSON.stringify(products));
+      return newProduct;
+    } catch (error) {
+      throw new Error('Error al agregar el producto');
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
   }
-});
 
-// Eliminar un producto por su ID
-router.delete('/:pid', (req, res) => {
-  try {
-    const productId = req.params.pid;
-    const deletedProduct = product.deleteProduct(productId);
-    if (!deletedProduct) {
-      res.status(404).json({ error: 'Producto no encontrado' });
-    } else {
-      res.json({ message: 'Producto eliminado correctamente' });
+  async getProductById(productId) {
+    try {
+      const products = await this.getProducts();
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        throw new Error('Producto no encontrado');
+      }
+      return product;
+    } catch (error) {
+      throw new Error('Error al obtener el producto');
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
   }
-});
+}
 
-export default router;
+export default ProductController;

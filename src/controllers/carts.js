@@ -1,43 +1,51 @@
-import express from 'express';
-import Cart from '../models/cart.js';
+import { promises as fs } from 'fs';
 
-const router = express.Router();
-const cart = new Cart();
-
-// Crear un nuevo carrito
-router.post('/', (req, res) => {
-  try {
-    const cartId = req.body.id;
-    const newCart = cart.createCart(cartId);
-    res.status(201).json(newCart);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+class CartController {
+  constructor() {
+    this.filePath = './data/carrito.json';
   }
-});
 
-// Obtener productos de un carrito por su ID
-router.get('/:cid', (req, res) => {
-  try {
-    const cartId = req.params.cid;
-    const products = cart.getProducts(cartId);
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  async createCart(cartId) {
+    try {
+      const cart = {
+        id: cartId,
+        products: [],
+      };
+      await fs.writeFile(this.filePath, JSON.stringify(cart));
+      return cart;
+    } catch (error) {
+      throw new Error('Error al crear el carrito');
+    }
   }
-});
 
-// Agregar un producto a un carrito
-router.post('/:cid/product/:pid', (req, res) => {
-  try {
-    const cartId = req.params.cid;
-    const productId = req.params.pid;
-    const quantity = req.body.quantity;
-    const updatedCart = cart.addProduct(cartId, productId, quantity);
-    res.status(201).json(updatedCart);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  async getCart(cartId) {
+    try {
+      const data = await fs.readFile(this.filePath, 'utf8');
+      const cart = JSON.parse(data);
+      if (cart.id !== cartId) {
+        throw new Error('Carrito no encontrado');
+      }
+      return cart.products;
+    } catch (error) {
+      throw new Error('Error al obtener los productos del carrito');
+    }
   }
-  
-});
 
-export default router;
+  async addProduct(cartId, productId, quantity) {
+    try {
+      const data = await fs.readFile(this.filePath, 'utf8');
+      const cart = JSON.parse(data);
+      if (cart.id !== cartId) {
+        throw new Error('Carrito no encontrado');
+      }
+      const newProduct = { product: productId, quantity };
+      cart.products.push(newProduct);
+      await fs.writeFile(this.filePath, JSON.stringify(cart));
+      return cart;
+    } catch (error) {
+      throw new Error('Error al agregar el producto al carrito');
+    }
+  }
+}
+
+export default CartController;
